@@ -10,7 +10,7 @@ const {
 const sequelize = new Sequelize(database, user, password, {
   host,
   dialect,
-  // dialectOptions: { ssl: ["true"] },
+  dialectOptions: { ssl: ["true"] },
 });
 
 module.exports = sequelize;
