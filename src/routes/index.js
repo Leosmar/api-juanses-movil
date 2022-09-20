@@ -24,8 +24,15 @@ route.use(require("./buyProduct"));
 /* localhost:3000/api/[]-category */
 route.use(require("./category"));
 
+/* localhost:3000/api/[]-brand */
+route.use(require("./phoneBrand"));
+
+/* localhost:3000/api/[]-brand */
+route.use(require("./phoneModel"));
+
 /* localhost:3000/api/[]-phone */
 route.use(require("./phone"));
+
 
 
 

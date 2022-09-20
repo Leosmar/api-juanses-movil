@@ -3,8 +3,8 @@ const { Router } = require("express");
 const route = Router();
 
 const Phone = require("../model/Phone");
-
-const BuyProduct = require("../model/BuyProduct");
+const sequelize = require("../model/connection");
+const { QueryTypes } = require("sequelize");
 
 //creating phone
 route.post("/post-phone", async (req, res) => {
@@ -24,12 +24,13 @@ route.post("/post-phone", async (req, res) => {
 //Select phone
 route.get("/get-phone", async (req, res) => {
   try {
-    const findPhone = await Phone
-      .findAll({
-        include: [
-          { model: BuyProduct },
-        ],
-      });
+    
+    const findPhone = await sequelize.query(
+      "SELECT phones.id, phones.color, phones.imei1, phones.imei2, phones.ram, phones.rom, phones.totalValue, phones.subjectValue, phones.stock, phones.buyProductId, phones.brandId, phones.modelId, buyproducts.barCode, buyproducts.cant, providers.name as nameProvider, brands.brand, models.model FROM phones inner join buyproducts on phones.buyProductId = buyproducts.id inner join providers on buyproducts.providerId = providers.id inner join brands on phones.brandId = brands.id inner join models on phones.modelId = models.id;",
+      {
+        type: QueryTypes.SELECT,
+      }
+    );
 
     return res.json({
       error: "false",

@@ -1,6 +1,9 @@
 const { Model, DataTypes } = require("sequelize");
 const sequelize = require("./connection");
+
 const BuyProduct = require("./BuyProduct");
+const PhoneBrand = require("./PhoneBrand");
+const PhoneModel = require("./PhoneModel");
 
 class Phone extends Model {}
 
@@ -10,14 +13,6 @@ Phone.init(
       type: DataTypes.INTEGER,
       primaryKey: true,
       autoIncrement: true,
-      allowNull: false,
-    },
-    brand: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
-    model: {
-      type: DataTypes.STRING,
       allowNull: false,
     },
     color: {
@@ -60,13 +55,12 @@ Phone.init(
 );
 
 Phone.belongsTo(BuyProduct);
+Phone.belongsTo(PhoneBrand);
+Phone.belongsTo(PhoneModel);
 
 
-const sync = async () => {
+(async () => {
   await Phone.sync();
-  //console.log("The table for the Client model was just (re)created!");
-};
-
-sync();
+})();
 
 module.exports = Phone;

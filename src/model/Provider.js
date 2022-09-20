@@ -38,7 +38,7 @@ Provider.init(
 
 
 const sync = async () => {
-  await Provider.sync({alter: true});
+  await Provider.sync();
  // console.log("The table for the Provider model was just (re)created!");
 };
 

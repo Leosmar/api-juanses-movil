@@ -10,7 +10,12 @@ const {
 const sequelize = new Sequelize(database, user, password, {
   host,
   dialect,
-  // dialectOptions: { ssl: ["true"] },
+  dialectOptions: {
+    ssl: {
+      require: true,
+      rejectUnauthorized: false
+    }
+  },
 });
 
 module.exports = sequelize;
