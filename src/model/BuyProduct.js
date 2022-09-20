@@ -35,7 +35,7 @@ BuyProduct.init(
       allowNull: true,
     },
   },
-  { sequelize, modelName: "buyProduct" }
+  { sequelize, modelName: "buyproduct" }
 );
 
 BuyProduct.belongsTo(Provider);

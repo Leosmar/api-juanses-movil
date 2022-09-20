@@ -49,7 +49,7 @@ route.get("/get-buy-product", async (req, res) => {
 route.get("/get-buy-product-phone-register", async (req, res) => {
   try {
     const findProduct = await sequelize.query(
-      "SELECT buyProducts.id,  brands.brand, models.model, phones.imei1, phones.imei2 FROM buyproducts inner join phones on buyproducts.id = phones.buyProductId inner join brands on phones.brandId = brands.id inner join models on phones.modelId = models.id;",
+      "SELECT buyproducts.id,  brands.brand, models.model, phones.imei1, phones.imei2 FROM buyproducts inner join phones on buyproducts.id = phones.buyProductId inner join brands on phones.brandId = brands.id inner join models on phones.modelId = models.id;",
       {
         type: QueryTypes.SELECT,
       }
