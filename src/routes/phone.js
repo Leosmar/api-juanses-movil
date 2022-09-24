@@ -26,12 +26,11 @@ route.get("/get-phone", async (req, res) => {
   try {
     
     const findPhone = await sequelize.query(
-      "SELECT phones.id, phones.color, phones.imei1, phones.imei2, phones.ram, phones.rom, phones.totalValue, phones.subjectValue, phones.stock, phones.buyProductId, phones.brandId, phones.modelId, buyproducts.barCode, buyproducts.cant, providers.name as nameProvider, brands.brand, models.model FROM phones inner join buyproducts on phones.buyProductId = buyproducts.id inner join providers on buyproducts.providerId = providers.id inner join brands on phones.brandId = brands.id inner join models on phones.modelId = models.id;",
+      "SELECT phones.id, phones.color, phones.imei1, phones.imei2, phones.ram, phones.rom, phones.totalValue, phones.subjectValue, phones.stock, phones.buyproductId, phones.brandId, phones.modelId, buyproducts.barCode, buyproducts.cant, providers.name as nameProvider, brands.brand, models.model FROM phones inner join buyproducts on phones.buyproductId = buyproducts.id inner join providers on buyproducts.providerId = providers.id inner join brands on phones.brandId = brands.id inner join models on phones.modelId = models.id;",
       {
         type: QueryTypes.SELECT,
       }
     );
-
     return res.json({
       error: "false",
       data: findPhone,
@@ -57,7 +56,7 @@ route.put("/put-phone", async (req, res) => {
       totalValue,
       subjectValue,
       stock,
-      buyProductId,
+      buyproductId,
     } = req.body;
 
     await Phone.update(
@@ -72,7 +71,7 @@ route.put("/put-phone", async (req, res) => {
         totalValue,
         subjectValue,
         stock,
-        buyProductId,
+        buyproductId,
       },
       {
         where: {

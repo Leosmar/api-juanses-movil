@@ -33,6 +33,12 @@ route.use(require("./phoneModel"));
 /* localhost:3000/api/[]-phone */
 route.use(require("./phone"));
 
+/* localhost:3000/api/[]-other-product */
+route.use(require("./otherProduct"));
+
+/* localhost:3000/api/[]-sale */
+route.use(require("./sale"));
+
 
 
 
