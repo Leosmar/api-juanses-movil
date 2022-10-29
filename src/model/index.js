@@ -1,6 +1,5 @@
 const sequelize = require("./connection");
 
-//Probando la connecion
 try {
   sequelize.authenticate();
   console.log("Connection has been established successfully.");

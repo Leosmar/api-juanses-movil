@@ -28,7 +28,7 @@ route.post("/post-other-product", async (req, res) => {
 //Select model
 route.get("/get-other-product", async (req, res) => {
   try {
-    const findModel = await sequelize.query(
+    const find = await sequelize.query(
         "SELECT otherproducts.id, otherproducts.name, otherproducts.cant, otherproducts.totalValue, otherproducts.subjectValue, otherproducts.categoryId, categories.typeProduct FROM otherproducts inner join categories on otherproducts.categoryId = categories.id",
         {
           type: QueryTypes.SELECT,
@@ -37,7 +37,7 @@ route.get("/get-other-product", async (req, res) => {
 
     return res.json({
       error: "false",
-      data: findModel,
+      data: find,
     });
   } catch (err) {
     res.json({ error: true, err });

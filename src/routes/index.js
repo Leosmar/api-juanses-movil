@@ -3,7 +3,7 @@ const { Router } = require("express");
 const route = Router();
 
 route.get("/test", (req, res) => {
-  res.status(200).json({ error: false, message: "todo ok" });
+  res.status(200).json({ error: false, message: "All ok" });
 });
 
 /* localhost:3000/api/[]-user */
@@ -38,6 +38,9 @@ route.use(require("./otherProduct"));
 
 /* localhost:3000/api/[]-sale */
 route.use(require("./sale"));
+
+/* localhost:3000/api/[]-spent */
+route.use(require("./spent"));
 
 
 

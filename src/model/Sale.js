@@ -22,6 +22,14 @@ Sale.init(
       type: DataTypes.STRING,
       allowNull: true,
     },
+    codeSale: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    saleCant: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
   },
   { sequelize, modelName: "sale" }
 );

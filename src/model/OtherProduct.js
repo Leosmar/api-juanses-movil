@@ -1,4 +1,4 @@
-const { Model, DataTypes } = require("sequelize");
+const { Model, DataTypes, Sequelize } = require("sequelize");
 const sequelize = require("./connection");
 const Category = require("./Category");
 
@@ -7,10 +7,10 @@ class OtherProduct extends Model {}
 OtherProduct.init(
   {
     id: {
-      type: DataTypes.INTEGER,
-      primaryKey: true,
-      autoIncrement: true,
+      type: Sequelize.UUID,
+      defaultValue: Sequelize.UUIDV4,
       allowNull: false,
+      primaryKey: true
     },
     name: {
         type: DataTypes.STRING,

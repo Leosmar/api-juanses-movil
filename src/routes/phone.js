@@ -3,6 +3,7 @@ const { Router } = require("express");
 const route = Router();
 
 const Phone = require("../model/Phone");
+const OtherProduct = require("../model/OtherProduct");
 const sequelize = require("../model/connection");
 const { QueryTypes } = require("sequelize");
 
@@ -24,7 +25,6 @@ route.post("/post-phone", async (req, res) => {
 //Select phone
 route.get("/get-phone", async (req, res) => {
   try {
-    
     const findPhone = await sequelize.query(
       "SELECT phones.id, phones.color, phones.imei1, phones.imei2, phones.ram, phones.rom, phones.totalValue, phones.subjectValue, phones.stock, phones.buyproductId, phones.brandId, phones.modelId, buyproducts.barCode, buyproducts.cant, providers.name as nameProvider, brands.brand, models.model FROM phones inner join buyproducts on phones.buyproductId = buyproducts.id inner join providers on buyproducts.providerId = providers.id inner join brands on phones.brandId = brands.id inner join models on phones.modelId = models.id;",
       {
@@ -34,6 +34,42 @@ route.get("/get-phone", async (req, res) => {
     return res.json({
       error: "false",
       data: findPhone,
+    });
+  } catch (err) {
+    res.json({ error: true, err });
+  }
+});
+
+//select phone and other products by id
+route.get("/get-products-by-id/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+    let data = [];
+
+    const phoneById = await Phone.findAll({
+      where: { id: id },
+      attributes: [
+        "id",
+        "subjectValue",
+        "totalValue",
+        "imei1",
+        "imei2",
+        "color",
+        "stock",
+      ],
+    });
+
+    const otherproductById = await OtherProduct.findAll({
+      where: { id: id },
+      attributes: ["id", "cant", "subjectValue", "totalValue"],
+    });
+
+    phoneById.length > 0 && data.push(...phoneById);
+    otherproductById.length > 0 && data.push(...otherproductById);
+
+    return res.json({
+      error: "false",
+      data: data,
     });
   } catch (err) {
     res.json({ error: true, err });
