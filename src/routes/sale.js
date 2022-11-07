@@ -25,7 +25,7 @@ route.post("/post-sale", async (req, res) => {
           );
 
           await Sale.create({
-            totalValue: product.totalValue,
+            totalValue: product.value,
             phoneId: product.id,
             codeSale,
             paymentType: paymentType,
@@ -41,7 +41,7 @@ route.post("/post-sale", async (req, res) => {
           );
 
           await Sale.create({
-            totalValue: product.totalValue,
+            totalValue: product.value,
             otherproductId: product.id,
             codeSale,
             paymentType: paymentType,
@@ -148,7 +148,8 @@ route.get("/get-products-sale", async (req, res) => {
 route.post("/put-sale", async (req, res) => {
   try {
     let { products, clientId, paymentType, updateCodeSale } = req.body;
-    console.log(products);
+    const productSave = [];
+    const otherproductToIgnore = [];
 
     const getProductsWhitCodeSale = await Sale.findAll({
       where: {
@@ -156,8 +157,6 @@ route.post("/put-sale", async (req, res) => {
       },
       attributes: ["id", "phoneId", "otherproductId"],
     });
-
-    const productSave = [];
 
     getProductsWhitCodeSale.map((id) => {
       let phoneId = id?.phoneId;
@@ -190,45 +189,106 @@ route.post("/put-sale", async (req, res) => {
     await Promise.all(
       getDataFromDeleteSale.map(async (product) => {
         if (product.phoneId) {
-          console.log(
-            `El siguiente telefono sera modificado: ${product.phoneId} con stock true`
+          await Phone.update(
+            {
+              stock: true,
+            },
+            {
+              where: {
+                id: product.phoneId,
+              },
+            }
           );
-          // await Phone.update(
-          //   {
-          //     stock: true,
-          //   },
-          //   {
-          //     where: {
-          //       id: product.phoneId,
-          //     },
-          //   }
-          // );
         }
         if (product.otherproductId) {
-          console.log(
-            `El siguiente accesorio sera modificado: ${product.otherproductId} sumando +${product.saleCant}`
+          await OtherProduct.increment(
+            {
+              cant: product.saleCant,
+            },
+            { where: { id: product.otherproductId } }
           );
-          // await OtherProduct.increment(
-          //   {
-          //     cant: product.saleCant,
-          //   },
-          //   { where: { id: product.id } }
-          // );
         }
       })
     );
 
-    //verify if data have codeSale an sum or subs whit the comparation between obj.saleCant and database.saleCant
+    await Promise.all(
+      products.map(async (product) => {
+        if (product?.typeProduct) {
+          const productSaveInDDBB = await Sale.findOne({
+            where: {
+              otherproductId: product.id,
+              codeSale: updateCodeSale,
+            },
+            attributes: ["saleCant"],
+          });
+          if (!productSaveInDDBB) return;
+          otherproductToIgnore.push(product.id);
+          let saleCantSaveInDDBB = productSaveInDDBB?.dataValues?.saleCant;
 
-    //delete all data 
-    // await Sale.destroy({
-    //   where: {
-    //     //   id: {
-    //     //     [Op.not]: productSave,
-    //     //   },
-    //     codeSale: updateCodeSale,
-    //   },
-    // });
+          if (product.saleCant < saleCantSaveInDDBB) {
+            await OtherProduct.increment(
+              {
+                cant: saleCantSaveInDDBB - product.saleCant,
+              },
+              { where: { id: product.id } }
+            );
+          } else if (product.saleCant > saleCantSaveInDDBB) {
+            await OtherProduct.increment(
+              {
+                cant: -product.saleCant - saleCantSaveInDDBB,
+              },
+              { where: { id: product.id } }
+            );
+          }
+        }
+      })
+    );
+
+    await Sale.destroy({
+      where: {
+        codeSale: updateCodeSale,
+      },
+    });
+
+    await Promise.all(
+      products.map(async (product) => {
+        if (product?.imei1) {
+          await Phone.update(
+            {
+              stock: false,
+            },
+            { where: { id: product.id } }
+          );
+
+          await Sale.create({
+            totalValue: product.value,
+            phoneId: product.id,
+            codeSale: updateCodeSale,
+            paymentType: paymentType,
+            clientId: clientId,
+            saleCant: product.saleCant || 1,
+          });
+        } else {
+          if (!otherproductToIgnore.includes(product.id)) {
+            await OtherProduct.increment(
+              {
+                cant: -product.saleCant,
+              },
+              { where: { id: product.id } }
+            );
+          }
+
+          await Sale.create({
+            totalValue: product.value,
+            otherproductId: product.id,
+            codeSale: updateCodeSale,
+            paymentType: paymentType,
+            clientId: clientId,
+            saleCant: product.saleCant,
+          });
+        }
+      })
+    );
 
     res.json({ error: "false", data: "" });
   } catch (err) {
@@ -240,6 +300,34 @@ route.post("/put-sale", async (req, res) => {
 route.delete("/delete-sale/:id", async (req, res) => {
   try {
     let { id } = req.params;
+
+    const products = await Sale.findAll({
+      where: {
+        codeSale: id,
+      },
+    });
+
+    await Promise.all(
+      products.map(async (product) => {
+        if (product?.phoneId) {
+          await Phone.update(
+            {
+              stock: true,
+            },
+            { where: { id: product.phoneId } }
+          );
+        }
+
+        if (product?.otherproductId) {
+          await OtherProduct.increment(
+            {
+              cant: product.saleCant,
+            },
+            { where: { id: product.otherproductId } }
+          );
+        }
+      })
+    );
 
     await Sale.destroy({
       where: {
