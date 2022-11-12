@@ -1,4 +1,5 @@
 const sequelize = require("./connection");
+require("./CashRegister");
 
 try {
   sequelize.authenticate();

@@ -42,7 +42,8 @@ route.use(require("./sale"));
 /* localhost:3000/api/[]-spent */
 route.use(require("./spent"));
 
-
+/* localhost:3000/api/[]-cash-register */
+route.use(require("./cashRegister"));
 
 
 

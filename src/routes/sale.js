@@ -7,12 +7,13 @@ let UUID = require("uuid-random");
 const Sale = require("../model/Sale");
 const Phone = require("../model/Phone");
 const OtherProduct = require("../model/OtherProduct");
-
+const cashRegister = require("../model/cashRegister");
 //creating sale
 route.post("/post-sale", async (req, res) => {
   try {
     let { products, clientId, paymentType } = req.body;
     let codeSale = UUID();
+    let sumSaleValue = 0;
 
     await Promise.all(
       products.map(async (product) => {
@@ -32,6 +33,7 @@ route.post("/post-sale", async (req, res) => {
             clientId: clientId,
             saleCant: product.saleCant || 1,
           });
+          sumSaleValue += product.value;
         } else {
           await OtherProduct.increment(
             {
@@ -48,8 +50,21 @@ route.post("/post-sale", async (req, res) => {
             clientId: clientId,
             saleCant: product.saleCant,
           });
+
+          sumSaleValue = sumSaleValue + product.value * product.saleCant;
         }
       })
+    );
+
+    await cashRegister.increment(
+      {
+        total: sumSaleValue,
+      },
+      {
+        where: {
+          id: 1,
+        },
+      }
     );
 
     res.json({ error: "false", data: [] });
@@ -147,9 +162,11 @@ route.get("/get-products-sale", async (req, res) => {
 //update sale
 route.post("/put-sale", async (req, res) => {
   try {
+    //Pendiente arreglar que cuando se cambie el precio de un producto se guarde bien en la caja
     let { products, clientId, paymentType, updateCodeSale } = req.body;
     const productSave = [];
     const otherproductToIgnore = [];
+    let updateCashRegister = 0;
 
     const getProductsWhitCodeSale = await Sale.findAll({
       where: {
@@ -189,6 +206,7 @@ route.post("/put-sale", async (req, res) => {
     await Promise.all(
       getDataFromDeleteSale.map(async (product) => {
         if (product.phoneId) {
+          updateCashRegister = updateCashRegister - product.totalValue;
           await Phone.update(
             {
               stock: true,
@@ -200,7 +218,11 @@ route.post("/put-sale", async (req, res) => {
             }
           );
         }
+
         if (product.otherproductId) {
+          updateCashRegister =
+            updateCashRegister - product.totalValue * product.saleCant;
+
           await OtherProduct.increment(
             {
               cant: product.saleCant,
@@ -213,29 +235,40 @@ route.post("/put-sale", async (req, res) => {
 
     await Promise.all(
       products.map(async (product) => {
+
         if (product?.typeProduct) {
           const productSaveInDDBB = await Sale.findOne({
             where: {
               otherproductId: product.id,
               codeSale: updateCodeSale,
             },
-            attributes: ["saleCant"],
+            attributes: ["saleCant", "totalValue"],
           });
+
           if (!productSaveInDDBB) return;
+
           otherproductToIgnore.push(product.id);
+
           let saleCantSaveInDDBB = productSaveInDDBB?.dataValues?.saleCant;
+          let updateCant = saleCantSaveInDDBB - product.saleCant;
 
           if (product.saleCant < saleCantSaveInDDBB) {
+            updateCashRegister =
+              updateCashRegister - product.value * updateCant;
+
             await OtherProduct.increment(
               {
-                cant: saleCantSaveInDDBB - product.saleCant,
+                cant: updateCant,
               },
               { where: { id: product.id } }
             );
           } else if (product.saleCant > saleCantSaveInDDBB) {
+            updateCashRegister =
+              updateCashRegister + product.value * (updateCant * -1);
+
             await OtherProduct.increment(
               {
-                cant: -product.saleCant - saleCantSaveInDDBB,
+                cant: updateCant,
               },
               { where: { id: product.id } }
             );
@@ -260,6 +293,8 @@ route.post("/put-sale", async (req, res) => {
             { where: { id: product.id } }
           );
 
+          updateCashRegister = updateCashRegister + product.value * 1;
+
           await Sale.create({
             totalValue: product.value,
             phoneId: product.id,
@@ -270,6 +305,8 @@ route.post("/put-sale", async (req, res) => {
           });
         } else {
           if (!otherproductToIgnore.includes(product.id)) {
+            updateCashRegister =
+              updateCashRegister + product.value * product.saleCant;
             await OtherProduct.increment(
               {
                 cant: -product.saleCant,
@@ -288,6 +325,20 @@ route.post("/put-sale", async (req, res) => {
           });
         }
       })
+    );
+
+    console.log("----------------------------->");
+    console.log(updateCashRegister);
+
+    await cashRegister.increment(
+      {
+        total: updateCashRegister,
+      },
+      {
+        where: {
+          id: 1,
+        },
+      }
     );
 
     res.json({ error: "false", data: "" });
