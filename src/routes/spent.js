@@ -3,6 +3,7 @@ const { Router } = require("express");
 const route = Router();
 
 const Spent = require("../model/Spent");
+const CashRegister = require("../model/CashRegister");
 
 //creating spent
 route.post("/post-spent", async (req, res) => {
@@ -15,6 +16,17 @@ route.post("/post-spent", async (req, res) => {
       comment,
     });
 
+    await CashRegister.increment(
+      {
+        total: -totalValue,
+      },
+      {
+        where: {
+          id: 1,
+        },
+      }
+    );
+
     res.json({ error: "false", data: spent.toJSON() });
   } catch (err) {
     res.json({ error: true, err });
@@ -25,7 +37,7 @@ route.post("/post-spent", async (req, res) => {
 
 route.get("/get-spent", async (req, res) => {
   try {
-    const findData = await Spent.findAll({ orderBy: [['createdAt', 'DESC']] });
+    const findData = await Spent.findAll({ orderBy: [["createdAt", "DESC"]] });
 
     return res.json({
       error: "false",
@@ -40,6 +52,24 @@ route.get("/get-spent", async (req, res) => {
 route.put("/put-spent", async (req, res) => {
   try {
     let { id, typeSpent, totalValue, comment } = req.body;
+
+    const total = await Spent.findAll({
+      where: {
+        id,
+      },
+      attributes: ["totalValue"],
+    });
+
+    await CashRegister.increment(
+      {
+        total: totalValue - total[0].dataValues.totalValue,
+      },
+      {
+        where: {
+          id: 1,
+        },
+      }
+    );
 
     await Spent.update(
       {
@@ -65,7 +95,25 @@ route.delete("/delete-spent/:id", async (req, res) => {
   try {
     let { id } = req.params;
 
-    const deleteProv = await Spent.destroy({
+    const total = await Spent.findAll({
+      where: {
+        id,
+      },
+      attributes: ["totalValue"],
+    });
+
+    await CashRegister.increment(
+      {
+        total: total[0].dataValues.totalValue,
+      },
+      {
+        where: {
+          id: 1,
+        },
+      }
+    );
+
+    await Spent.destroy({
       where: {
         id,
       },

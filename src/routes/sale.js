@@ -7,7 +7,7 @@ let UUID = require("uuid-random");
 const Sale = require("../model/Sale");
 const Phone = require("../model/Phone");
 const OtherProduct = require("../model/OtherProduct");
-const cashRegister = require("../model/CashRegister");
+const CashRegister = require("../model/CashRegister");
 
 //creating sale
 route.post("/post-sale", async (req, res) => {
@@ -57,7 +57,7 @@ route.post("/post-sale", async (req, res) => {
       })
     );
 
-    await cashRegister.increment(
+    await CashRegister.increment(
       {
         total: sumSaleValue,
       },
@@ -331,7 +331,7 @@ route.post("/put-sale", async (req, res) => {
     console.log("----------------------------->");
     console.log(updateCashRegister);
 
-    await cashRegister.increment(
+    await CashRegister.increment(
       {
         total: updateCashRegister,
       },
