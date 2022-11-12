@@ -7,7 +7,8 @@ let UUID = require("uuid-random");
 const Sale = require("../model/Sale");
 const Phone = require("../model/Phone");
 const OtherProduct = require("../model/OtherProduct");
-const cashRegister = require("../model/cashRegister");
+const cashRegister = require("../model/CashRegister");
+
 //creating sale
 route.post("/post-sale", async (req, res) => {
   try {
