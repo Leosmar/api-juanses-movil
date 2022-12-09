@@ -5,6 +5,7 @@ const { QueryTypes, Op, where } = require("sequelize");
 let UUID = require("uuid-random");
 
 const Sale = require("../model/Sale");
+const ReturnSale = require("../model/ReturnSale");
 const Phone = require("../model/Phone");
 const OtherProduct = require("../model/OtherProduct");
 const CashRegister = require("../model/CashRegister");
@@ -80,7 +81,71 @@ route.get("/get-sale", async (req, res) => {
     let AllData = [];
 
     const findDataWhitPhone = await sequelize.query(
-      "SELECT sales.id, sales.totalValue, sales.paymentType, sales.saleCant, sales.createdAt, sales.phoneId, sales.otherproductId, sales.clientId, sales.codeSale, brands.brand, models.model, clients.name FROM sales inner join phones on sales.phoneId = phones.id inner join brands on phones.brandId = brands.id inner join models on phones.modelId = models.id inner join clients on sales.clientId = clients.id where sales.otherproductId is null;",
+      "SELECT phones.imei1, returnsales.id, returnsales.totalValue, returnsales.paymentType, returnsales.saleCant, returnsales.createdAt, returnsales.phoneId, returnsales.otherproductId, returnsales.clientId, returnsales.codeSale, brands.brand, models.model, clients.name FROM returnsales inner join phones on returnsales.phoneId = phones.id inner join brands on phones.brandId = brands.id inner join models on phones.modelId = models.id inner join clients on returnsales.clientId = clients.id where returnsales.otherproductId is null;",
+      {
+        type: QueryTypes.SELECT,
+      }
+    );
+
+    const findDataWhitOtherproduct = await sequelize.query(
+      "SELECT returnsales.id, returnsales.totalValue, returnsales.paymentType, returnsales.saleCant, returnsales.createdAt, returnsales.phoneId, returnsales.otherproductId, returnsales.clientId, returnsales.codeSale, otherproducts.name as otherproductName, otherproducts.categoryId, clients.name, categories.typeProduct FROM returnsales inner join otherproducts on returnsales.otherproductId = otherproducts.id inner join categories on otherproducts.categoryId = categories.id inner join clients on returnsales.clientId = clients.id where returnsales.phoneId is null;",
+      {
+        type: QueryTypes.SELECT,
+      }
+    );
+
+    findDataWhitPhone.map((item) => {
+      AllData.push(item);
+    });
+
+    findDataWhitOtherproduct.map((item) => {
+      AllData.push(item);
+    });
+
+    AllData.map((item, i) => {
+      let product = {};
+      if (item.phoneId) {
+        product.brand = item.brand;
+        product.model = item.model;
+        product.imei1 = item.imei1;
+      }
+
+      if (item.otherproductId) {
+        product.otherproductName = item.otherproductName;
+        product.typeProduct = item.typeProduct;
+      }
+
+      AllData[i].product = product;
+    });
+
+    const groupData = AllData.reduce(
+      (groupedCodeSale, item) => ({
+        ...groupedCodeSale,
+        [item.codeSale]: groupedCodeSale[item.codeSale]
+          ? [...groupedCodeSale[item.codeSale], item]
+          : [item],
+      }),
+      {}
+    );
+
+    let iterableData = Object.values(groupData);
+
+    return res.json({
+      error: "false",
+      data: iterableData,
+    });
+  } catch (err) {
+    res.json({ error: true, err });
+  }
+});
+
+//get All cancel sale
+route.get("/get-cancel-sale", async (req, res) => {
+  try {
+    let AllData = [];
+
+    const findDataWhitPhone = await sequelize.query(
+      "SELECT phones.imei1, sales.id, sales.totalValue, sales.paymentType, sales.saleCant, sales.createdAt, sales.phoneId, sales.otherproductId, sales.clientId, sales.codeSale, brands.brand, models.model, clients.name FROM sales inner join phones on sales.phoneId = phones.id inner join brands on phones.brandId = brands.id inner join models on phones.modelId = models.id inner join clients on sales.clientId = clients.id where sales.otherproductId is null;",
       {
         type: QueryTypes.SELECT,
       }
@@ -106,6 +171,7 @@ route.get("/get-sale", async (req, res) => {
       if (item.phoneId) {
         product.brand = item.brand;
         product.model = item.model;
+        product.imei1 = item.imei1;
       }
 
       if (item.otherproductId) {
@@ -236,7 +302,6 @@ route.post("/put-sale", async (req, res) => {
 
     await Promise.all(
       products.map(async (product) => {
-
         if (product?.typeProduct) {
           const productSaveInDDBB = await Sale.findOne({
             where: {
@@ -328,9 +393,6 @@ route.post("/put-sale", async (req, res) => {
       })
     );
 
-    console.log("----------------------------->");
-    console.log(updateCashRegister);
-
     await CashRegister.increment(
       {
         total: updateCashRegister,
@@ -348,8 +410,8 @@ route.post("/put-sale", async (req, res) => {
   }
 });
 
-//delete sale
-route.delete("/delete-sale/:id", async (req, res) => {
+//return sale
+route.delete("/return-sale/:id", async (req, res) => {
   try {
     let { id } = req.params;
 
@@ -358,6 +420,11 @@ route.delete("/delete-sale/:id", async (req, res) => {
         codeSale: id,
       },
     });
+
+    const subtract = products.reduce(
+      (acc, currenVale) => acc + currenVale.totalValue * currenVale.saleCant,
+      0
+    );
 
     await Promise.all(
       products.map(async (product) => {
@@ -368,6 +435,14 @@ route.delete("/delete-sale/:id", async (req, res) => {
             },
             { where: { id: product.phoneId } }
           );
+          await ReturnSale.create({
+            totalValue: product.totalValue,
+            phoneId: product.phoneId,
+            codeSale: product.codeSale,
+            paymentType: product.paymentType,
+            clientId: product.clientId,
+            saleCant: product.saleCant || 1,
+          });
         }
 
         if (product?.otherproductId) {
@@ -377,8 +452,28 @@ route.delete("/delete-sale/:id", async (req, res) => {
             },
             { where: { id: product.otherproductId } }
           );
+
+          await ReturnSale.create({
+            totalValue: product.totalValue,
+            otherproductId: product.otherproductId,
+            codeSale: product.codeSale,
+            paymentType: product.paymentType,
+            clientId: product.clientId,
+            saleCant: product.saleCant,
+          });
         }
       })
+    );
+
+    await CashRegister.increment(
+      {
+        total: -subtract,
+      },
+      {
+        where: {
+          id: 1,
+        },
+      }
     );
 
     await Sale.destroy({
