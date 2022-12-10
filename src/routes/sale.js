@@ -76,7 +76,7 @@ route.post("/post-sale", async (req, res) => {
 });
 
 //get All sale
-route.get("/get-sale", async (req, res) => {
+route.get("/get-cancel-sale", async (req, res) => {
   try {
     let AllData = [];
 
@@ -140,7 +140,7 @@ route.get("/get-sale", async (req, res) => {
 });
 
 //get All cancel sale
-route.get("/get-cancel-sale", async (req, res) => {
+route.get("/get-sale", async (req, res) => {
   try {
     let AllData = [];
 
